@@ -35,13 +35,7 @@ class CreateOrderService {
       throw new AppError('Customer does not exists');
     }
 
-    const productsIds = products.map(product => {
-      return { id: product.id };
-    });
-
-    const findAllProducts = await this.productsRepository.findAllById(
-      productsIds,
-    );
+    const findAllProducts = await this.productsRepository.findAllById(products);
 
     const orderProducts = products.map(product => {
       const stockProduct = findAllProducts.find(
@@ -71,7 +65,18 @@ class CreateOrderService {
       products: orderProducts,
     });
 
-    await this.productsRepository.updateQuantity(products);
+    const { order_products } = order;
+
+    const orderedProductsQuantity = order_products.map(product => ({
+      id: product.product_id,
+      quantity:
+        findAllProducts.filter(p => product.product_id === p.id)[0].quantity -
+        product.quantity,
+      name: findAllProducts.filter(p => product.product_id === p.id)[0].name,
+      price: findAllProducts.filter(p => product.product_id === p.id)[0].price,
+    }));
+
+    await this.productsRepository.updateQuantity(orderedProductsQuantity);
 
     return order;
   }
